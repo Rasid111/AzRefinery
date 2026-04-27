@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<title>AzRefinery — SignalR test client</title>
+<style>
+  body { background: #020617; color: #e2e8f0; font-family: monospace; padding: 20px; }
+  h1 { font-size: 16px; color: #22d3ee; }
+  .status { padding: 4px 8px; border-radius: 4px; display: inline-block; }
+  .ok { background: #064e3b; color: #6ee7b7; }
+  .err { background: #7f1d1d; color: #fca5a5; }
+  table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 12px; }
+  th, td { border: 1px solid #1e293b; padding: 4px 8px; text-align: left; }
+  th { background: #0f172a; color: #94a3b8; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .meta { color: #64748b; font-size: 12px; margin-top: 8px; }
+  details { margin-top: 16px; }
+  pre { background: #0f172a; padding: 8px; overflow-x: auto; font-size: 11px; }
+</style>
+</head>
+<body>
+<h1>AzRefinery — SignalR test client</h1>
+<div>Status: <span id="status" class="status err">disconnected</span></div>
+<div class="meta">Updates received: <span id="count">0</span></div>
+<div class="meta">Last sim time: <span id="simtime">—</span></div>
+<table id="grid">
+  <thead>
+    <tr><th>ID</th><th>Status</th><th>Health</th><th>D</th><th>Sensors</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<details><summary>Raw payload (последний)</summary><pre id="raw"></pre></details>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+<script>
+  const conn = new signalR.HubConnectionBuilder()
+    .withUrl("/hubs/plant")
+    .withAutomaticReconnect()
+    .build();
+
+  const statusEl = document.getElementById('status');
+  const countEl = document.getElementById('count');
+  const simEl = document.getElementById('simtime');
+  const tbody = document.querySelector('#grid tbody');
+  const rawEl = document.getElementById('raw');
+  let count = 0;
+
+  conn.on("TelemetryUpdate", payload => {
+    count++;
+    countEl.textContent = count;
+    simEl.textContent = payload.simulationTime;
+    rawEl.textContent = JSON.stringify(payload, null, 2);
+    tbody.innerHTML = payload.equipment.map(e => `
+      <tr>
+        <td>${e.id}</td>
+        <td>${e.status}</td>
+        <td class="num">${e.healthIndex.toFixed(1)}</td>
+        <td class="num">${e.degradationLevel.toFixed(3)}</td>
+        <td>${Object.entries(e.sensors).map(([k,v])=>`${k}=${(+v).toFixed(2)}`).join('  ')}</td>
+      </tr>`).join('');
+  });
+
+  conn.onreconnecting(() => { statusEl.className='status err'; statusEl.textContent='reconnecting'; });
+  conn.onreconnected(() => { statusEl.className='status ok'; statusEl.textContent='connected'; });
+  conn.onclose(() => { statusEl.className='status err'; statusEl.textContent='closed'; });
+
+  conn.start()
+    .then(() => { statusEl.className='status ok'; statusEl.textContent='connected'; })
+    .catch(err => { statusEl.textContent = 'failed: ' + err; });
+</script>
+</body>
+</html>
