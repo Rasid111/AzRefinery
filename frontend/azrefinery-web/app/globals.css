@@ -128,3 +128,15 @@
     @apply font-sans;
   }
 }
+
+@keyframes azflow {
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+
+@keyframes azspin {
+  to {
+    transform: rotate(360deg);
+  }
+}

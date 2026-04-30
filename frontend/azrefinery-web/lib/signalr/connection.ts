@@ -1,4 +1,5 @@
 import {
+  HttpTransportType,
   HubConnection,
   HubConnectionBuilder,
   HubConnectionState,
@@ -10,12 +11,19 @@ class PlantHubConnection {
   private starting: Promise<void> | null = null;
 
   private build(): HubConnection {
-    const url =
-      process.env.NEXT_PUBLIC_HUB_URL ?? "http://localhost:5000/hubs/plant";
+    // Relative path → Next.js rewrites this to the backend, same-origin from
+    // the browser's perspective. Override with NEXT_PUBLIC_HUB_URL only if
+    // pointing to a backend not co-served by Next.
+    const url = process.env.NEXT_PUBLIC_HUB_URL ?? "/hubs/plant";
     return new HubConnectionBuilder()
-      .withUrl(url)
+      .withUrl(url, {
+        transport:
+          HttpTransportType.WebSockets |
+          HttpTransportType.ServerSentEvents |
+          HttpTransportType.LongPolling,
+      })
       .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
-      .configureLogging(LogLevel.Warning)
+      .configureLogging(LogLevel.Information)
       .build();
   }
 

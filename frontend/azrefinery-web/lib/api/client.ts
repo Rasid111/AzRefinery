@@ -1,5 +1,7 @@
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000";
+// Default to relative URLs so requests go through Next.js rewrites (same-origin,
+// no CORS). Override with NEXT_PUBLIC_API_BASE_URL only if you really need to
+// hit a remote backend directly from the browser.
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
