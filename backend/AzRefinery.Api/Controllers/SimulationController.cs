@@ -1,3 +1,4 @@
+using AzRefinery.Api.Analytics;
 using AzRefinery.Api.Dtos;
 using AzRefinery.Api.Hubs;
 using AzRefinery.Api.Services;
@@ -13,12 +14,14 @@ public class SimulationController : ControllerBase
 {
     private readonly PlantSimulator _plant;
     private readonly HistoryStore _history;
+    private readonly AnomalyDetector _detector;
     private readonly IHubContext<PlantHub> _hub;
 
-    public SimulationController(PlantSimulator plant, HistoryStore history, IHubContext<PlantHub> hub)
+    public SimulationController(PlantSimulator plant, HistoryStore history, AnomalyDetector detector, IHubContext<PlantHub> hub)
     {
         _plant = plant;
         _history = history;
+        _detector = detector;
         _hub = hub;
     }
 
@@ -60,6 +63,7 @@ public class SimulationController : ControllerBase
     {
         _plant.Reset();
         _history.Clear();
+        _detector.Reset();
         return await BroadcastAndReturn();
     }
 

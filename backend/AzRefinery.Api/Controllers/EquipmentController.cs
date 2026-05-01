@@ -86,6 +86,22 @@ public class EquipmentController : ControllerBase
         catch (KeyNotFoundException) { return NotFound(); }
     }
 
+    /// <summary>Только для отладки: вбросить аномальное значение в датчик (для проверки детектора).</summary>
+    [HttpPost("{id}/debug/anomaly")]
+    public IActionResult InjectAnomaly(string id, [FromQuery] string sensor, [FromQuery] double? value = null)
+    {
+        try
+        {
+            var e = _plant.GetById(id);
+            var s = e.Sensors.FirstOrDefault(x => x.Code == sensor);
+            if (s == null) return NotFound($"Sensor '{sensor}' not found");
+            // По умолчанию — далеко за пределы нормы, чтобы Z-score гарантированно сработал.
+            s.CurrentValue = value ?? (s.NominalValue + (s.MaxValue - s.NominalValue) * 3.0);
+            return NoContent();
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+
     /// <summary>Только для отладки: принудительно установить уровень деградации.</summary>
     [HttpPost("{id}/debug/degradation")]
     public IActionResult SetDegradation(string id, [FromBody] DegradationDebugRequest req)

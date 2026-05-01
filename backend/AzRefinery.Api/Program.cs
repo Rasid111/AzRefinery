@@ -6,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<PlantSimulator>();
 builder.Services.AddSingleton<HistoryStore>();
+builder.Services.AddSingleton<AzRefinery.Api.Analytics.AnomalyDetector>();
 builder.Services.AddHostedService<SimulationBackgroundService>();
 builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));

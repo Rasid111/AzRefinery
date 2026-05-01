@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EquipmentDetailClient } from "./EquipmentDetailClient";
 
 export default async function EquipmentDetailPage({
   params,
@@ -7,14 +8,11 @@ export default async function EquipmentDetailPage({
 }) {
   const { id } = await params;
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <Link href="/" className="text-xs text-slate-400 hover:text-slate-200">
         ← К дашборду
       </Link>
-      <h1 className="text-2xl font-semibold">{id}</h1>
-      <p className="text-sm text-slate-400">
-        Детальная страница объекта — этап 7.
-      </p>
+      <EquipmentDetailClient id={id} />
     </div>
   );
 }

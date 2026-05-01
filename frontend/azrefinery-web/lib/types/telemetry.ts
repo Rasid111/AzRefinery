@@ -30,6 +30,7 @@ export interface AnomalyAlert {
   simulationTime: string;
   equipmentId: string;
   sensorId: string;
+  sensorCode: string;
   severity: AnomalySeverity;
   zScore: number;
   currentValue: number;
