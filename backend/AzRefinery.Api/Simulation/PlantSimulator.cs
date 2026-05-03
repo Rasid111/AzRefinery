@@ -11,6 +11,9 @@ public class PlantSimulator
     private readonly Random _random = new();
     private DateTime _lastAdvancedAt;
 
+    /// <summary>Колбэк, вызываемый на каждом тике до прогона оборудования (используется ScenarioManager).</summary>
+    public Action<SimulationContext>? OnTick { get; set; }
+
     public List<Equipment> Equipment { get; private set; } = new();
     public DateTime SimulationTime { get; private set; }
     public DateTime RealStartTime { get; private set; }
@@ -71,6 +74,9 @@ public class PlantSimulator
                 SimulationTime = SimulationTime,
                 Random = _random
             };
+            // Сценарии тикаются перед оборудованием — чтобы их эффекты (уставки, утечки)
+            // прочитывались на этом же шаге.
+            OnTick?.Invoke(ctx);
             // Порядок критичен: каждый объект читает выходы предыдущего.
             foreach (var eq in Equipment)
                 eq.Tick(ctx);

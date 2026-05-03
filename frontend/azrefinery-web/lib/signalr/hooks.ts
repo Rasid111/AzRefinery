@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { plantHub } from "./connection";
 import type { TelemetryUpdate, SimulationState, AnomalyAlert } from "../types/telemetry";
+import type { RulUpdate, KpiUpdate } from "../types/analytics";
 import { usePlantStore } from "../store/plantStore";
 
 export function useTelemetry(): TelemetryUpdate | null {
@@ -33,6 +34,18 @@ export function useSimulationState(): SimulationState | null {
   }, [setStore]);
 
   return state;
+}
+
+export function useRulUpdates(): RulUpdate | null {
+  const [last, setLast] = useState<RulUpdate | null>(null);
+  useEffect(() => plantHub.on<RulUpdate>("RulUpdate", setLast), []);
+  return last;
+}
+
+export function useKpiUpdates(): KpiUpdate | null {
+  const [last, setLast] = useState<KpiUpdate | null>(null);
+  useEffect(() => plantHub.on<KpiUpdate>("KpiUpdate", setLast), []);
+  return last;
 }
 
 export function useAnomalies(maxCount = 100): AnomalyAlert[] {

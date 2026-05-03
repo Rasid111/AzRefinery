@@ -7,6 +7,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<PlantSimulator>();
 builder.Services.AddSingleton<HistoryStore>();
 builder.Services.AddSingleton<AzRefinery.Api.Analytics.AnomalyDetector>();
+builder.Services.AddSingleton<AzRefinery.Api.Analytics.RulEstimator>();
+builder.Services.AddSingleton<AzRefinery.Api.Analytics.KpiCalculator>();
+builder.Services.AddSingleton<AzRefinery.Api.Scenarios.ScenarioManager>();
 builder.Services.AddHostedService<SimulationBackgroundService>();
 builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
@@ -36,6 +39,13 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Связка сценариев с симулятором — после построения контейнера.
+{
+    var plant = app.Services.GetRequiredService<PlantSimulator>();
+    var scenarios = app.Services.GetRequiredService<AzRefinery.Api.Scenarios.ScenarioManager>();
+    plant.OnTick = scenarios.TickAll;
+}
 
 if (app.Environment.IsDevelopment())
 {

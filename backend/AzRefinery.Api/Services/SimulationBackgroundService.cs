@@ -13,10 +13,14 @@ public class SimulationBackgroundService : BackgroundService
     private readonly PlantSimulator _plant;
     private readonly HistoryStore _history;
     private readonly AnomalyDetector _detector;
+    private readonly RulEstimator _rul;
+    private readonly KpiCalculator _kpi;
     private readonly IHubContext<PlantHub> _hub;
     private readonly ILogger<SimulationBackgroundService> _log;
     private readonly int _tickMs;
     private readonly int _telemetryMs;
+    private readonly int _kpiMs;
+    private readonly int _rulMs;
 
     private readonly Dictionary<string, EquipmentStatus> _lastStatus = new();
 
@@ -24,6 +28,8 @@ public class SimulationBackgroundService : BackgroundService
         PlantSimulator plant,
         HistoryStore history,
         AnomalyDetector detector,
+        RulEstimator rul,
+        KpiCalculator kpi,
         IHubContext<PlantHub> hub,
         IConfiguration config,
         ILogger<SimulationBackgroundService> log)
@@ -31,16 +37,22 @@ public class SimulationBackgroundService : BackgroundService
         _plant = plant;
         _history = history;
         _detector = detector;
+        _rul = rul;
+        _kpi = kpi;
         _hub = hub;
         _log = log;
         _tickMs = config.GetValue("Simulation:TickRateMs", 100);
         _telemetryMs = config.GetValue("Simulation:TelemetryPushIntervalMs", 1000);
+        _kpiMs = config.GetValue("Simulation:KpiPushIntervalMs", 5000);
+        _rulMs = config.GetValue("Simulation:RulPushIntervalMs", 10000);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stop)
     {
         _log.LogInformation("Simulation tick={TickMs}ms, telemetry push={PushMs}ms", _tickMs, _telemetryMs);
         var lastTelemetry = DateTime.UtcNow;
+        var lastKpi = DateTime.UtcNow;
+        var lastRul = DateTime.UtcNow;
 
         while (!stop.IsCancellationRequested)
         {
@@ -59,6 +71,29 @@ public class SimulationBackgroundService : BackgroundService
                     await DetectStatusChangesAsync(snap, stop);
 
                     lastTelemetry = now;
+                }
+
+                if ((now - lastKpi).TotalMilliseconds >= _kpiMs)
+                {
+                    var kpi = new KpiUpdateDto(
+                        DateTime.UtcNow,
+                        _kpi.CalculatePlant(),
+                        _kpi.CalculateEquipment());
+                    await _hub.Clients.All.SendAsync("KpiUpdate", kpi, stop);
+                    lastKpi = now;
+                }
+
+                if ((now - lastRul).TotalMilliseconds >= _rulMs)
+                {
+                    var simNow = _plant.SimulationTime;
+                    var estimates = _plant.Equipment
+                        .Select(e => RulEstimateDto.From(_rul.Estimate(e, simNow)))
+                        .ToList();
+                    await _hub.Clients.All.SendAsync(
+                        "RulUpdate",
+                        new RulUpdateDto(DateTime.UtcNow, estimates),
+                        stop);
+                    lastRul = now;
                 }
             }
             catch (Exception ex)

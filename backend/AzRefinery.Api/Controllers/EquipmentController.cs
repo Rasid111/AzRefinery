@@ -1,5 +1,6 @@
 using AzRefinery.Api.Domain.Events;
 using AzRefinery.Api.Dtos;
+using AzRefinery.Api.Services;
 using AzRefinery.Api.Simulation;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,8 +11,13 @@ namespace AzRefinery.Api.Controllers;
 public class EquipmentController : ControllerBase
 {
     private readonly PlantSimulator _plant;
+    private readonly HistoryStore _history;
 
-    public EquipmentController(PlantSimulator plant) => _plant = plant;
+    public EquipmentController(PlantSimulator plant, HistoryStore history)
+    {
+        _plant = plant;
+        _history = history;
+    }
 
     [HttpGet]
     public ActionResult<IEnumerable<EquipmentDto>> GetAll()
@@ -81,6 +87,13 @@ public class EquipmentController : ControllerBase
         try
         {
             _plant.PerformMaintenance(id);
+            _history.RecordEvent(new EquipmentEvent
+            {
+                EquipmentId = id,
+                Type = EventType.MaintenancePerformed,
+                Timestamp = _plant.SimulationTime,
+                Message = "Проведено обслуживание",
+            });
             return NoContent();
         }
         catch (KeyNotFoundException) { return NotFound(); }
